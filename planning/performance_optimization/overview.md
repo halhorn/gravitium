@@ -36,6 +36,10 @@ merge 6 パスの GPU コスト削減。クラスタ時の悪化を緩和。
 Metal でも GPU 時間を把握できる手段と、自動ベンチマーク。  
 → [phase4_profiling.md](phase4_profiling.md)
 
+### Phase 5: Merge 空間ハッシュの適応的セルサイズ（挙動同一）
+小半径・密集配置（太陽系スケール）で merge 探索が O(N²) 化する問題を、セルサイズの動的決定で緩和。  
+→ [phase5_merge_grid_adaptive.md](phase5_merge_grid_adaptive.md)
+
 ## スコープ外
 
 - 星数（active_count）の削減

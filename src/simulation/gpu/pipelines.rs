@@ -22,6 +22,7 @@ pub struct SimulationComputePipelines {
     pub position_step: CachedComputePipelineId,
     pub velocity_step: CachedComputePipelineId,
     pub merge_prepare: CachedComputePipelineId,
+    pub merge_finalize_cell_size: CachedComputePipelineId,
     pub merge_clear_buckets: CachedComputePipelineId,
     pub merge_init_owner: CachedComputePipelineId,
     pub merge_build_grid: CachedComputePipelineId,
@@ -118,6 +119,8 @@ pub fn init_simulation_compute_pipelines(
     });
 
     let merge_prepare = queue_merge_pipeline(&pipeline_cache, &merge_layout, "prepare");
+    let merge_finalize_cell_size =
+        queue_merge_pipeline(&pipeline_cache, &merge_layout, "finalize_cell_size");
     let merge_clear_buckets =
         queue_merge_pipeline(&pipeline_cache, &merge_layout, "clear_buckets");
     let merge_init_owner = queue_merge_pipeline(&pipeline_cache, &merge_layout, "init_owner");
@@ -142,6 +145,7 @@ pub fn init_simulation_compute_pipelines(
         position_step,
         velocity_step,
         merge_prepare,
+        merge_finalize_cell_size,
         merge_clear_buckets,
         merge_init_owner,
         merge_build_grid,

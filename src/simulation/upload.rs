@@ -2,6 +2,7 @@ use bevy::prelude::*;
 use bevy::render::extract_resource::ExtractResource;
 
 use crate::model::constants::{BODY_COUNT, MERGE_BUCKET_COUNT};
+use crate::simulation::gpu::params::MERGE_SCRATCH_LEN;
 use crate::model::BodyArrays;
 
 /// Body state waiting to be written into existing GPU buffers (Render world).
@@ -59,7 +60,7 @@ impl SimulationUploadPayload {
             merge_bucket_heads: vec![u32::MAX; MERGE_BUCKET_COUNT],
             merge_aux,
             merge_owner: vec![BODY_COUNT as u32; BODY_COUNT],
-            merge_scratch: vec![Vec4::ZERO; BODY_COUNT * 2],
+            merge_scratch: vec![Vec4::ZERO; MERGE_SCRATCH_LEN],
         }
     }
 }

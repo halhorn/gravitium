@@ -32,6 +32,12 @@ pub const MERGE_ITERATIONS_PER_FRAME: u32 = 2;
 /// Conservative max body radius (AU) for merge grid; covers `STAR_MASS_MAX` at `SUN_RADIUS_AU`.
 pub const MERGE_MAX_RADIUS: f32 = 0.25;
 
+/// Minimum spatial-hash cell size (AU) for merge broad-phase.
+pub const MERGE_CELL_MIN_SIZE: f32 = 0.01;
+
+/// Safety multiplier applied to radius cap before computing merge cell size.
+pub const MERGE_CELL_RADIUS_SAFETY: f32 = 1.0;
+
 /// Solar radius in AU (696,000 km / 1 AU).
 pub const SUN_RADIUS_AU: f32 = 696_000.0 / 149_597_870.7;
 

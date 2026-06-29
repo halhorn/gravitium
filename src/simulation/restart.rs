@@ -5,6 +5,7 @@ use crate::model::{generate_initial_state, BodyArrays};
 
 use super::commands::{SimulationCommand, SimulationSpawned};
 use super::gpu::SimulationGpuBuffers;
+use super::merge_cell::MergeCellCpuState;
 use super::playback::PlaybackState;
 use super::settings::SimulationSettings;
 use super::upload::{queue_upload, PendingSimulationUpload};
@@ -17,6 +18,11 @@ pub fn spawn_initial_simulation(
     mut spawned: MessageWriter<SimulationSpawned>,
 ) {
     let bodies = generate_initial_state(&settings.initial, &settings.physics, &settings.force);
+    commands.insert_resource(MergeCellCpuState::from_masses(
+        &settings.physics,
+        &bodies.masses,
+        bodies.active_count as usize,
+    ));
     install_simulation_state(&mut commands, &mut buffers, &bodies, &mut spawned, false);
 }
 
@@ -27,6 +33,7 @@ pub fn restart_simulation(
     settings: Res<SimulationSettings>,
     gpu: Option<Res<SimulationGpuBuffers>>,
     mut pending_upload: ResMut<PendingSimulationUpload>,
+    mut merge_cell: ResMut<MergeCellCpuState>,
     mut spawned: MessageWriter<SimulationSpawned>,
 ) {
     if !commands
@@ -43,6 +50,11 @@ pub fn restart_simulation(
     playback.accumulated_sim_time = 0.0;
 
     let bodies = generate_initial_state(&settings.initial, &settings.physics, &settings.force);
+    *merge_cell = MergeCellCpuState::from_masses(
+        &settings.physics,
+        &bodies.masses,
+        bodies.active_count as usize,
+    );
     queue_upload(&mut pending_upload, &bodies);
     write_spawned(&mut spawned, &bodies, true);
 }

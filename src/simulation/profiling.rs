@@ -24,6 +24,7 @@ pub const SIM_PASSES: &[(&str, &str)] = &[
     ("gravity", "Gravity"),
     ("velocity_step", "Velocity step"),
     ("merge_prepare", "Merge prepare"),
+    ("merge_finalize_cell_size", "Merge finalize cell size"),
     ("merge_clear_buckets", "Merge clear buckets"),
     ("merge_init_owner", "Merge init owner"),
     ("merge_build_grid", "Merge build grid"),
@@ -34,6 +35,7 @@ pub const SIM_PASSES: &[(&str, &str)] = &[
 
 const MERGE_PASS_SUFFIXES: &[&str] = &[
     "merge_prepare",
+    "merge_finalize_cell_size",
     "merge_clear_buckets",
     "merge_init_owner",
     "merge_build_grid",

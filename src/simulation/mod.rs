@@ -1,6 +1,7 @@
 mod commands;
 mod config;
 pub mod gpu;
+mod merge_cell;
 mod playback;
 mod profiling;
 mod restart;
@@ -17,6 +18,7 @@ pub use profiling::{
     add_diagnostics_plugins, automated_profiling_active, physics_state_hash, profiling_enabled,
     ProfilingOverlay, SimulationProfilingPlugin,
 };
+pub use merge_cell::MergeCellCpuState;
 pub use restart::restart_simulation;
 pub use settings::SimulationSettings;
 pub use viewport::{
@@ -42,6 +44,7 @@ impl Plugin for SimulationPlugin {
     fn build(&self, app: &mut App) {
         app.init_resource::<SimulationConfig>()
             .init_resource::<SimulationSettings>()
+            .init_resource::<MergeCellCpuState>()
             .init_resource::<PlaybackState>()
             .init_resource::<SimulationViewportRect>()
             .init_resource::<ProfilingOverlay>()
