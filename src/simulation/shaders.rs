@@ -1,6 +1,10 @@
 use bevy::{asset::uuid_handle, prelude::*};
 
-use crate::model::constants::MERGE_FLASH_FRAMES;
+use crate::model::constants::{BODY_COUNT, MERGE_FLASH_FRAMES};
+use crate::simulation::gpu::params::{
+    MERGE_SCRATCH_METADATA_INDEX, MERGE_SCRATCH_PARTIAL_RADIUS_OFFSET,
+    MERGE_SCRATCH_VEL_RADIUS_OFFSET,
+};
 
 const GRAVITY_WGSL: &str = include_str!("../../assets/shaders/gravity.wgsl");
 const INTEGRATE_WGSL: &str = include_str!("../../assets/shaders/integrate.wgsl");
@@ -9,7 +13,21 @@ const COLORS_WGSL: &str = include_str!("../../assets/shaders/colors.wgsl");
 const MERGE_WGSL: &str = include_str!("../../assets/shaders/merge.wgsl");
 
 fn inject_shader_constants(source: &str) -> String {
-    source.replace("#{MERGE_FLASH_FRAMES}", &MERGE_FLASH_FRAMES.to_string())
+    source
+        .replace("#{MERGE_FLASH_FRAMES}", &MERGE_FLASH_FRAMES.to_string())
+        .replace("#{BODY_COUNT}", &BODY_COUNT.to_string())
+        .replace(
+            "#{MERGE_SCRATCH_VEL_RADIUS_OFFSET}",
+            &MERGE_SCRATCH_VEL_RADIUS_OFFSET.to_string(),
+        )
+        .replace(
+            "#{MERGE_SCRATCH_METADATA_INDEX}",
+            &MERGE_SCRATCH_METADATA_INDEX.to_string(),
+        )
+        .replace(
+            "#{MERGE_SCRATCH_PARTIAL_RADIUS_OFFSET}",
+            &MERGE_SCRATCH_PARTIAL_RADIUS_OFFSET.to_string(),
+        )
 }
 
 pub const GRAVITY_SHADER: Handle<Shader> = uuid_handle!("a8c31e42-1f0b-4d2a-9e3c-7b5a6d8e9f01");

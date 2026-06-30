@@ -6,6 +6,7 @@ use bevy::render::{
 use bytemuck::Pod;
 
 use crate::model::constants::{BODY_COUNT, MERGE_BUCKET_COUNT};
+use super::params::MERGE_SCRATCH_LEN;
 
 /// GPU-resident simulation buffers (handles shared by compute + render).
 #[derive(Resource, Clone, ExtractResource)]
@@ -85,7 +86,7 @@ impl SimulationGpuBuffers {
         );
         let merge_scratch = Self::init_storage_buffer(
             buffers,
-            vec![Vec4::ZERO; BODY_COUNT * 2],
+            vec![Vec4::ZERO; MERGE_SCRATCH_LEN],
             usage,
             asset_usage,
         );

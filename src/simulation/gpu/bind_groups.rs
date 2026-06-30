@@ -9,6 +9,7 @@ use bevy::{
 };
 
 use crate::simulation::config::SimulationConfig;
+use crate::simulation::merge_cell::MergeCellCpuState;
 use crate::simulation::settings::SimulationSettings;
 
 use super::buffers::SimulationGpuBuffers;
@@ -39,11 +40,12 @@ pub(crate) struct SimulationComputeUniforms {
 fn current_params(
     settings: &SimulationSettings,
     config: &SimulationConfig,
+    merge_cell: &MergeCellCpuState,
 ) -> (GravityParams, IntegrateParams, MergeParams, ColorsParams) {
     (
         GravityParams::from_settings(settings),
         IntegrateParams::from_settings(settings, config),
-        MergeParams::from_settings(settings),
+        MergeParams::from_settings(settings, merge_cell),
         ColorsParams::from_settings(settings),
     )
 }
@@ -55,6 +57,7 @@ pub fn prepare_simulation_bind_groups(
     gpu_buffers: Res<SimulationGpuBuffers>,
     settings: Res<SimulationSettings>,
     config: Res<SimulationConfig>,
+    merge_cell: Res<MergeCellCpuState>,
     render_device: Res<RenderDevice>,
     render_queue: Res<RenderQueue>,
     pipeline_cache: Res<PipelineCache>,
@@ -62,7 +65,7 @@ pub fn prepare_simulation_bind_groups(
     mut cache: Local<CachedBindGroupParams>,
     mut uniforms: Local<SimulationComputeUniforms>,
 ) {
-    let params = current_params(&settings, &config);
+    let params = current_params(&settings, &config, &merge_cell);
     if cache.last.as_ref() == Some(&params) {
         return;
     }

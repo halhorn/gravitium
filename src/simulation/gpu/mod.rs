@@ -2,7 +2,7 @@ mod apply_upload;
 mod bind_groups;
 pub mod buffers;
 mod node;
-mod params;
+pub mod params;
 mod pipelines;
 
 pub use buffers::SimulationGpuBuffers;
@@ -18,6 +18,7 @@ use bevy::{
 };
 
 use crate::simulation::config::SimulationConfig;
+use crate::simulation::merge_cell::MergeCellCpuState;
 use crate::simulation::playback::PlaybackState;
 use crate::simulation::settings::SimulationSettings;
 use crate::simulation::upload::PendingSimulationUpload;
@@ -34,6 +35,7 @@ impl Plugin for SimulationGpuPlugin {
             .add_plugins(ExtractResourcePlugin::<SimulationGpuBuffers>::default())
             .add_plugins(ExtractResourcePlugin::<SimulationConfig>::default())
             .add_plugins(ExtractResourcePlugin::<SimulationSettings>::default())
+            .add_plugins(ExtractResourcePlugin::<MergeCellCpuState>::default())
             .add_plugins(ExtractResourcePlugin::<PlaybackState>::default())
             .add_plugins(ExtractResourcePlugin::<PendingSimulationUpload>::default());
 
@@ -54,7 +56,8 @@ impl Plugin for SimulationGpuPlugin {
                     .run_if(resource_exists::<SimulationComputePipelines>)
                     .run_if(resource_exists::<SimulationGpuBuffers>)
                     .run_if(resource_exists::<SimulationConfig>)
-                    .run_if(resource_exists::<SimulationSettings>),
+                    .run_if(resource_exists::<SimulationSettings>)
+                    .run_if(resource_exists::<MergeCellCpuState>),
             );
 
         let mut render_graph = render_app.world_mut().resource_mut::<RenderGraph>();

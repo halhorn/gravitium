@@ -1,16 +1,30 @@
-// Parallel merge (≤8 storage buffers for WebGPU). Scratch: [0..n) pos+mass, [n..2n) vel+radius.
+// Parallel merge (≤8 storage buffers for WebGPU).
+// Scratch layout:
+//   [0 .. BODY_COUNT) pos.xyz + mass
+//   [BODY_COUNT .. BODY_COUNT*2) vel.xyz + radius
+//   [BODY_COUNT*2] metadata (radius_cap, inv_cell_size)
+//   [BODY_COUNT*2 + 1 .. + 1 + workgroups) per-workgroup radius partials
 // merge_aux: [0..n) bucket_next, [n..2n) merge_flash.
-// merge_flash packs: bit0 = absorbed this pass, bits1+ = frames remaining (0..MERGE_FLASH_FRAMES).
 
 const INVALID: u32 = 0xFFFFFFFFu;
 const MERGE_FLASH_FRAMES: u32 = #{MERGE_FLASH_FRAMES}u;
 const ABSORBED_THIS_PASS: u32 = 1u;
+const BODY_COUNT: u32 = #{BODY_COUNT}u;
+const SCRATCH_VEL_RADIUS_OFFSET: u32 = #{MERGE_SCRATCH_VEL_RADIUS_OFFSET}u;
+const SCRATCH_METADATA_INDEX: u32 = #{MERGE_SCRATCH_METADATA_INDEX}u;
+const SCRATCH_PARTIAL_RADIUS_OFFSET: u32 = #{MERGE_SCRATCH_PARTIAL_RADIUS_OFFSET}u;
+const MERGE_CELL_MODE_FIXED: u32 = 0u;
+const MERGE_CELL_MODE_GPU_ADAPTIVE: u32 = 1u;
 
 struct Params {
     n: u32,
     merge_radius_factor: f32,
     inv_cell_size: f32,
     min_mass: f32,
+    cell_size_mode: u32,
+    radius_partial_count: u32,
+    merge_cell_min_size: f32,
+    merge_cell_radius_safety: f32,
 }
 
 @group(0) @binding(0) var<storage, read_write> positions: array<vec4<f32>>;
@@ -22,6 +36,8 @@ struct Params {
 @group(0) @binding(6) var<storage, read_write> merge_aux: array<u32>;
 @group(0) @binding(7) var<storage, read_write> merge_owner: array<atomic<u32>>;
 @group(0) @binding(8) var<uniform> params: Params;
+
+var<workgroup> wg_max_radius: f32;
 
 fn bucket_next(i: u32) -> u32 {
     return merge_aux[i];
@@ -64,14 +80,38 @@ fn snap_mass(i: u32) -> f32 {
 }
 
 fn snap_vel(i: u32) -> vec3<f32> {
-    return scratch[params.n + i].xyz;
+    return scratch[SCRATCH_VEL_RADIUS_OFFSET + i].xyz;
 }
 
 fn snap_radius(i: u32) -> f32 {
-    return scratch[params.n + i].w;
+    return scratch[SCRATCH_VEL_RADIUS_OFFSET + i].w;
 }
 
 const SUN_RADIUS_AU: f32 = 696000.0 / 149597870.7;
+
+fn physical_radius_from_mass(mass: f32) -> f32 {
+    return SUN_RADIUS_AU * pow(max(mass, 0.0), 1.0 / 3.0);
+}
+
+fn radius_cap_to_inv_cell_size(radius_cap: f32) -> f32 {
+    let safe_radius = max(radius_cap * params.merge_cell_radius_safety, 0.0);
+    let cell_size = max(
+        2.0 * safe_radius * params.merge_radius_factor,
+        params.merge_cell_min_size,
+    );
+    return 1.0 / cell_size;
+}
+
+fn adaptive_inv_cell_size() -> f32 {
+    return scratch[SCRATCH_METADATA_INDEX].y;
+}
+
+fn current_inv_cell_size() -> f32 {
+    if (params.cell_size_mode == MERGE_CELL_MODE_GPU_ADAPTIVE) {
+        return adaptive_inv_cell_size();
+    }
+    return params.inv_cell_size;
+}
 
 fn hash_cell(cx: i32, cy: i32, cz: i32) -> u32 {
     let hx = bitcast<u32>(cx);
@@ -82,7 +122,7 @@ fn hash_cell(cx: i32, cy: i32, cz: i32) -> u32 {
 }
 
 fn cell_coords(pos: vec3<f32>) -> vec3<i32> {
-    let s = params.inv_cell_size;
+    let s = current_inv_cell_size();
     return vec3<i32>(
         i32(floor(pos.x * s)),
         i32(floor(pos.y * s)),
@@ -116,22 +156,76 @@ fn absorb(i: u32, j: u32) {
 }
 
 @compute @workgroup_size(256)
-fn prepare(@builtin(global_invocation_id) gid: vec3<u32>) {
+fn prepare(
+    @builtin(global_invocation_id) gid: vec3<u32>,
+    @builtin(local_invocation_id) lid: u32,
+    @builtin(workgroup_id) wgid: vec3<u32>,
+) {
+    if (params.cell_size_mode == MERGE_CELL_MODE_GPU_ADAPTIVE) {
+        if (lid == 0u) {
+            wg_max_radius = 0.0;
+        }
+        workgroupBarrier();
+    }
+
     let i = gid.x;
-    if (i >= params.n) {
+    var local_max_radius = 0.0;
+    if (i < params.n) {
+        let flash = flash_counter(absorbed(i));
+        var next_flash = flash;
+        if (flash > 0u) {
+            next_flash = flash - 1u;
+        }
+        set_absorbed(i, next_flash << 1u);
+        set_bucket_next(i, INVALID);
+        let mass = masses[i];
+        let radius = physical_radius_from_mass(mass);
+        scratch[i] = vec4<f32>(positions[i].xyz, mass);
+        scratch[SCRATCH_VEL_RADIUS_OFFSET + i] = vec4<f32>(velocities[i].xyz, radius);
+        if (mass > params.min_mass) {
+            local_max_radius = radius;
+        }
+    }
+
+    if (params.cell_size_mode == MERGE_CELL_MODE_GPU_ADAPTIVE) {
+        var<workgroup> shared: array<f32, 256>;
+        shared[lid] = local_max_radius;
+        workgroupBarrier();
+
+        var stride = 128u;
+        loop {
+            if (lid < stride) {
+                shared[lid] = max(shared[lid], shared[lid + stride]);
+            }
+            workgroupBarrier();
+            if (stride == 1u) {
+                break;
+            }
+            stride = stride / 2u;
+        }
+
+        if (lid == 0u) {
+            scratch[SCRATCH_PARTIAL_RADIUS_OFFSET + wgid.x] =
+                vec4<f32>(shared[0], 0.0, 0.0, 0.0);
+        }
+    }
+}
+
+@compute @workgroup_size(256)
+fn finalize_cell_size(@builtin(local_invocation_id) lid: u32) {
+    if (params.cell_size_mode != MERGE_CELL_MODE_GPU_ADAPTIVE || lid != 0u) {
         return;
     }
-    let flash = flash_counter(absorbed(i));
-    var next_flash = flash;
-    if (flash > 0u) {
-        next_flash = flash - 1u;
+
+    var radius_cap = 0.0;
+    for (var w = 0u; w < params.radius_partial_count; w++) {
+        radius_cap = max(radius_cap, scratch[SCRATCH_PARTIAL_RADIUS_OFFSET + w].x);
     }
-    set_absorbed(i, next_flash << 1u);
-    set_bucket_next(i, INVALID);
-    let mass = masses[i];
-    let radius = SUN_RADIUS_AU * pow(mass, 1.0 / 3.0);
-    scratch[i] = vec4<f32>(positions[i].xyz, mass);
-    scratch[params.n + i] = vec4<f32>(velocities[i].xyz, radius);
+    if (radius_cap <= 0.0) {
+        radius_cap = physical_radius_from_mass(params.min_mass);
+    }
+    let inv = radius_cap_to_inv_cell_size(radius_cap);
+    scratch[SCRATCH_METADATA_INDEX] = vec4<f32>(radius_cap, inv, 0.0, 0.0);
 }
 
 @compute @workgroup_size(256)

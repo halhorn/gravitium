@@ -1,9 +1,23 @@
 use bevy::render::render_resource::ShaderType;
 
-use crate::model::constants::MIN_MASS;
+use crate::model::constants::{BODY_COUNT, MIN_MASS, WORKGROUP_SIZE};
 use crate::model::force::MAX_FORCE_TERMS;
+use crate::model::merge_grid::MergeGridSizer;
+use crate::model::physics::MergeCellSizePolicy;
 use crate::simulation::config::SimulationConfig;
+use crate::simulation::merge_cell::MergeCellCpuState;
 use crate::simulation::settings::SimulationSettings;
+
+pub const MERGE_CELL_MODE_FIXED: u32 = 0;
+pub const MERGE_CELL_MODE_GPU_ADAPTIVE: u32 = 1;
+
+pub const MERGE_SCRATCH_BODY_OFFSET: usize = 0;
+pub const MERGE_SCRATCH_VEL_RADIUS_OFFSET: usize = BODY_COUNT;
+pub const MERGE_SCRATCH_METADATA_INDEX: usize = BODY_COUNT * 2;
+pub const MERGE_SCRATCH_PARTIAL_RADIUS_OFFSET: usize = BODY_COUNT * 2 + 1;
+
+pub const MAX_MERGE_WORKGROUPS: usize = BODY_COUNT.div_ceil(WORKGROUP_SIZE as usize);
+pub const MERGE_SCRATCH_LEN: usize = BODY_COUNT * 2 + 1 + MAX_MERGE_WORKGROUPS;
 
 #[derive(Clone, Copy, ShaderType, PartialEq)]
 pub struct GpuForceTerm {
@@ -19,7 +33,7 @@ pub struct GravityParams {
     pub term_count: u32,
     pub softening_sq: f32,
     pub min_mass: f32,
-    pub terms: [GpuForceTerm; MAX_FORCE_TERMS],
+    pub terms: [GpuForceTerm; 8],
 }
 
 #[derive(Clone, Copy, ShaderType, PartialEq)]
@@ -36,6 +50,10 @@ pub struct MergeParams {
     pub merge_radius_factor: f32,
     pub inv_cell_size: f32,
     pub min_mass: f32,
+    pub cell_size_mode: u32,
+    pub radius_partial_count: u32,
+    pub merge_cell_min_size: f32,
+    pub merge_cell_radius_safety: f32,
 }
 
 impl GravityParams {
@@ -84,12 +102,40 @@ impl IntegrateParams {
 }
 
 impl MergeParams {
-    pub fn from_settings(settings: &SimulationSettings) -> Self {
+    pub fn from_settings(settings: &SimulationSettings, merge_cell: &MergeCellCpuState) -> Self {
+        let physics = settings.physics;
+        let active_count = settings.active_count();
+        let radius_partial_count = active_count.div_ceil(WORKGROUP_SIZE);
+
+        let (cell_size_mode, inv_cell_size) = match physics.merge_cell_policy {
+            MergeCellSizePolicy::AdaptivePerPrepare => (
+                MERGE_CELL_MODE_GPU_ADAPTIVE,
+                physics.conservative_merge_inv_cell_size(),
+            ),
+            MergeCellSizePolicy::ConservativeFixed => (
+                MERGE_CELL_MODE_FIXED,
+                physics.conservative_merge_inv_cell_size(),
+            ),
+            MergeCellSizePolicy::InitialMassEnvelope => {
+                let cap = merge_cell
+                    .radius_cap
+                    .unwrap_or_else(MergeGridSizer::conservative_radius_cap);
+                (
+                    MERGE_CELL_MODE_FIXED,
+                    physics.merge_inv_cell_size_from_radius_cap(cap),
+                )
+            }
+        };
+
         Self {
-            n: settings.active_count(),
-            merge_radius_factor: settings.physics.merge_radius_factor,
-            inv_cell_size: settings.physics.merge_inv_cell_size(),
+            n: active_count,
+            merge_radius_factor: physics.merge_radius_factor,
+            inv_cell_size,
             min_mass: MIN_MASS,
+            cell_size_mode,
+            radius_partial_count,
+            merge_cell_min_size: physics.merge_cell_min_size,
+            merge_cell_radius_safety: physics.merge_cell_radius_safety,
         }
     }
 }

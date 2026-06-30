@@ -9,6 +9,7 @@ use bevy::{
 };
 
 use crate::model::constants::{MERGE_BUCKET_COUNT, MERGE_ITERATIONS_PER_FRAME, WORKGROUP_SIZE};
+use crate::model::MergeCellSizePolicy;
 use crate::simulation::playback::PlaybackState;
 use crate::simulation::settings::SimulationSettings;
 
@@ -62,6 +63,24 @@ fn run_merge_find_and_apply(
     pass.set_pipeline(apply_merge);
     pass.dispatch_workgroups(workgroups, 1, 1);
     apply_span.end(&mut pass);
+}
+
+fn run_merge_finalize_cell_size(
+    render_context: &mut bevy::render::renderer::RenderContext,
+    diagnostics: &impl RecordDiagnostics,
+    bind_groups: &SimulationComputeBindGroups,
+    pipeline: &ComputePipeline,
+) {
+    run_compute_pass(
+        render_context,
+        diagnostics,
+        "sim/merge_finalize_cell_size",
+        |pass| {
+            pass.set_bind_group(0, &bind_groups.merge, &[]);
+            pass.set_pipeline(pipeline);
+            pass.dispatch_workgroups(1, 1, 1);
+        },
+    );
 }
 
 fn run_merge_iteration(
@@ -144,6 +163,7 @@ impl render_graph::Node for SimulationComputeNode {
             pipelines.position_step,
             pipelines.velocity_step,
             pipelines.merge_prepare,
+            pipelines.merge_finalize_cell_size,
             pipelines.merge_clear_buckets,
             pipelines.merge_init_owner,
             pipelines.merge_build_grid,
@@ -184,12 +204,17 @@ impl render_graph::Node for SimulationComputeNode {
         let bucket_workgroups = (MERGE_BUCKET_COUNT as u32).div_ceil(256);
         let diagnostics = render_context.diagnostic_recorder();
         let playback = world.resource::<PlaybackState>();
+        let adaptive_cell_size =
+            settings.physics.merge_cell_policy == MergeCellSizePolicy::AdaptivePerPrepare;
 
         if playback.is_running() {
             let gravity = cache.get_compute_pipeline(pipelines.gravity).unwrap();
             let position_step = cache.get_compute_pipeline(pipelines.position_step).unwrap();
             let velocity_step = cache.get_compute_pipeline(pipelines.velocity_step).unwrap();
             let merge_prepare = cache.get_compute_pipeline(pipelines.merge_prepare).unwrap();
+            let merge_finalize_cell_size = cache
+                .get_compute_pipeline(pipelines.merge_finalize_cell_size)
+                .unwrap();
 
             run_compute_pass(
                 render_context,
@@ -235,6 +260,15 @@ impl render_graph::Node for SimulationComputeNode {
                         pass.dispatch_workgroups(workgroups, 1, 1);
                     },
                 );
+
+                if adaptive_cell_size {
+                    run_merge_finalize_cell_size(
+                        render_context,
+                        &diagnostics,
+                        bind_groups,
+                        merge_finalize_cell_size,
+                    );
+                }
 
                 run_merge_iteration(
                     render_context,
