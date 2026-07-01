@@ -37,7 +37,7 @@ struct Params {
 @group(0) @binding(7) var<storage, read_write> merge_owner: array<atomic<u32>>;
 @group(0) @binding(8) var<uniform> params: Params;
 
-var<workgroup> wg_max_radius: f32;
+var<workgroup> wg_radius_scratch: array<f32, 256>;
 
 fn bucket_next(i: u32) -> u32 {
     return merge_aux[i];
@@ -158,16 +158,9 @@ fn absorb(i: u32, j: u32) {
 @compute @workgroup_size(256)
 fn prepare(
     @builtin(global_invocation_id) gid: vec3<u32>,
-    @builtin(local_invocation_id) lid: u32,
+    @builtin(local_invocation_index) lid: u32,
     @builtin(workgroup_id) wgid: vec3<u32>,
 ) {
-    if (params.cell_size_mode == MERGE_CELL_MODE_GPU_ADAPTIVE) {
-        if (lid == 0u) {
-            wg_max_radius = 0.0;
-        }
-        workgroupBarrier();
-    }
-
     let i = gid.x;
     var local_max_radius = 0.0;
     if (i < params.n) {
@@ -188,14 +181,13 @@ fn prepare(
     }
 
     if (params.cell_size_mode == MERGE_CELL_MODE_GPU_ADAPTIVE) {
-        var<workgroup> shared: array<f32, 256>;
-        shared[lid] = local_max_radius;
+        wg_radius_scratch[lid] = local_max_radius;
         workgroupBarrier();
 
         var stride = 128u;
         loop {
             if (lid < stride) {
-                shared[lid] = max(shared[lid], shared[lid + stride]);
+                wg_radius_scratch[lid] = max(wg_radius_scratch[lid], wg_radius_scratch[lid + stride]);
             }
             workgroupBarrier();
             if (stride == 1u) {
@@ -206,13 +198,13 @@ fn prepare(
 
         if (lid == 0u) {
             scratch[SCRATCH_PARTIAL_RADIUS_OFFSET + wgid.x] =
-                vec4<f32>(shared[0], 0.0, 0.0, 0.0);
+                vec4<f32>(wg_radius_scratch[0], 0.0, 0.0, 0.0);
         }
     }
 }
 
 @compute @workgroup_size(256)
-fn finalize_cell_size(@builtin(local_invocation_id) lid: u32) {
+fn finalize_cell_size(@builtin(local_invocation_index) lid: u32) {
     if (params.cell_size_mode != MERGE_CELL_MODE_GPU_ADAPTIVE || lid != 0u) {
         return;
     }
