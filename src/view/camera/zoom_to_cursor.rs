@@ -14,7 +14,7 @@ use crate::simulation::{
 use crate::view::SimulationCamera;
 
 use super::pivot::zoom_pivot_on_focus_plane;
-use super::reset::reset_simulation_camera_on_restart;
+use super::reset::{reset_simulation_camera_on_restart, sync_initial_camera_to_outer_radius};
 
 /// Zoom delta applied to `PanOrbitCamera` targets.
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -169,6 +169,7 @@ pub struct CameraControlsPlugin;
 impl Plugin for CameraControlsPlugin {
     fn build(&self, app: &mut App) {
         app.init_resource::<TouchPinchState>()
+            .add_systems(PostStartup, sync_initial_camera_to_outer_radius)
             .add_systems(
                 PostUpdate,
                 zoom_to_cursor_system
