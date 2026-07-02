@@ -11,9 +11,9 @@ use bevy_panorbit_camera::PanOrbitCameraPlugin;
 use crate::platform;
 use crate::simulation::{
     add_diagnostics_plugins, automated_profiling_active, profiling_enabled, SimulationPlugin,
-    SimulationSettings,
+    SimulationSettings, SimulationStartupSet,
 };
-use crate::url::{UrlNavigation, UrlSyncPlugin};
+use crate::url::{UrlHydrateSet, UrlNavigation, UrlSyncPlugin};
 use crate::view::{
     setup_bodies_render, simulation_camera_transform, simulation_pan_orbit, BodiesMesh,
     SimulationCamera, ViewPlugin, SIMULATION_RENDER_LAYER, UI_RENDER_LAYER,
@@ -63,8 +63,9 @@ pub fn run() {
             ControlUiPlugin,
         ))
         .insert_resource(ClearColor(Color::BLACK))
+        .configure_sets(Startup, SimulationStartupSet.after(UrlHydrateSet))
         .add_systems(PostStartup, setup_bodies_render)
-        .add_systems(Startup, setup_camera)
+        .add_systems(Startup, setup_camera.after(UrlHydrateSet))
         .add_systems(Update, hide_loading_when_ready)
         .run();
 }

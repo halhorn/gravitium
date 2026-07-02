@@ -15,6 +15,9 @@ pub struct UrlHydrated(pub bool);
 #[derive(Resource, Default)]
 pub struct PendingUrlSync(pub bool);
 
+#[derive(SystemSet, Debug, Clone, PartialEq, Eq, Hash)]
+pub struct UrlHydrateSet;
+
 pub struct UrlSyncPlugin;
 
 impl Plugin for UrlSyncPlugin {
@@ -22,7 +25,12 @@ impl Plugin for UrlSyncPlugin {
         app.init_resource::<ControlPanelDraft>()
             .init_resource::<PendingUrlSync>()
             .init_resource::<UrlHydrated>()
-            .add_systems(Startup, (hydrate_from_url, queue_initial_url_flush).chain())
+            .add_systems(
+                Startup,
+                (hydrate_from_url, queue_initial_url_flush)
+                    .chain()
+                    .in_set(UrlHydrateSet),
+            )
             .add_systems(
                 PostUpdate,
                 (detect_applied_changes, flush_url_fragment).chain(),
