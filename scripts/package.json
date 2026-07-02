@@ -1,0 +1,13 @@
+{
+  "name": "gravitium-scripts",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "verify:app": "node verify-app.mjs",
+    "verify:outer-radius": "node verify-outer-radius-zoom.mjs"
+  },
+  "devDependencies": {
+    "playwright": "^1.52.0",
+    "pngjs": "^7.0.0"
+  }
+}
