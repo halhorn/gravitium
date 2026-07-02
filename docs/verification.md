@@ -36,4 +36,7 @@ sudo apt-get install -y mesa-vulkan-drivers xvfb
 
 ## 実装完了時
 
-UI / 3D ビューに触れた PR では、マージ前に `./scripts/run-visual-verification.sh` を実行し、必要ならスクショを PR に添付してください。
+UI / 3D ビューに触れた PR では、マージ前に以下を行ってください。
+
+1. `./scripts/run-visual-verification.sh` を実行する
+2. **動作確認結果（スクショ）を PR 本文に添付する**（`artifacts/screenshots/verify-view.png` など）

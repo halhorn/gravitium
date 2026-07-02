@@ -47,7 +47,7 @@ export GRAVITIUM_SCREENSHOT_DIR=/path/to/output   # 変更可
 export GRAVITIUM_BASE_URL=http://127.0.0.1:8080   # 変更可
 ```
 
-PR に添付するときは、必要な PNG をコミットするか PR 本文にアップロードしてください。
+PR には **動作確認結果（生成したスクショ）を本文に添付**してください。
 
 ## 共有ライブラリ (`lib/`)
 

@@ -4,7 +4,7 @@
 
 1. Run `trunk serve` on `http://127.0.0.1:8080` (or reuse a running instance).
 2. Run `./scripts/run-visual-verification.sh` and ensure it exits 0.
-3. Attach the screenshot to the PR when behavior is user-visible.
+3. **Attach verification results (screenshots) to the PR body** before marking it ready.
 
 See [docs/verification.md](docs/verification.md) and [scripts/README.md](scripts/README.md).
 
