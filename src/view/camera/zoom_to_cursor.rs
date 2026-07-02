@@ -8,7 +8,8 @@ use bevy_egui::{EguiPreUpdateSet, EguiPrimaryContextPass};
 use bevy_panorbit_camera::{EguiWantsFocus, PanOrbitCamera, PanOrbitCameraSystemSet};
 
 use crate::simulation::{
-    point_in_simulation_viewport, SimulationRestartSet, SimulationViewportRect,
+    point_in_simulation_viewport, restart_simulation, SimulationRestartSet,
+    SimulationViewportRect,
 };
 use crate::view::SimulationCamera;
 
@@ -176,7 +177,9 @@ impl Plugin for CameraControlsPlugin {
             )
             .add_systems(
                 EguiPrimaryContextPass,
-                reset_simulation_camera_on_restart.in_set(SimulationRestartSet),
+                reset_simulation_camera_on_restart
+                    .in_set(SimulationRestartSet)
+                    .after(restart_simulation),
             );
     }
 }

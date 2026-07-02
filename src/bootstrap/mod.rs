@@ -9,11 +9,14 @@ use bevy_egui::{EguiContext, PrimaryEguiContext};
 use bevy_panorbit_camera::PanOrbitCameraPlugin;
 
 use crate::platform;
-use crate::simulation::{add_diagnostics_plugins, automated_profiling_active, profiling_enabled, SimulationPlugin};
+use crate::simulation::{
+    add_diagnostics_plugins, automated_profiling_active, profiling_enabled, SimulationPlugin,
+    SimulationSettings, viewport_aspect_from_window,
+};
 use crate::url::{UrlNavigation, UrlSyncPlugin};
 use crate::view::{
-    default_simulation_camera_transform, default_simulation_pan_orbit, setup_bodies_render,
-    BodiesMesh, SimulationCamera, ViewPlugin, SIMULATION_RENDER_LAYER, UI_RENDER_LAYER,
+    fallback_viewport_aspect, setup_bodies_render, simulation_camera_for_outer_radius, BodiesMesh,
+    SimulationCamera, ViewPlugin, SIMULATION_RENDER_LAYER, UI_RENDER_LAYER,
 };
 use crate::ui::ControlUiPlugin;
 
@@ -66,7 +69,7 @@ pub fn run() {
         .run();
 }
 
-fn setup_camera(mut commands: Commands) {
+fn setup_camera(mut commands: Commands, settings: Res<SimulationSettings>, windows: Query<&Window>) {
     commands.spawn((
         Camera2d,
         Camera {
@@ -79,6 +82,19 @@ fn setup_camera(mut commands: Commands) {
         PrimaryEguiContext,
     ));
 
+    let aspect = windows
+        .single()
+        .map(viewport_aspect_from_window)
+        .unwrap_or_else(|_| {
+            use crate::simulation::DESKTOP_PANEL_WIDTH;
+            fallback_viewport_aspect(1280.0 - DESKTOP_PANEL_WIDTH, 720.0)
+        });
+    let (transform, pan_orbit) = simulation_camera_for_outer_radius(
+        settings.initial.disk_r_max,
+        std::f32::consts::FRAC_PI_4,
+        aspect,
+    );
+
     commands.spawn((
         Camera3d::default(),
         Camera {
@@ -87,8 +103,8 @@ fn setup_camera(mut commands: Commands) {
         },
         SimulationCamera,
         RenderLayers::layer(SIMULATION_RENDER_LAYER),
-        default_simulation_camera_transform(),
-        default_simulation_pan_orbit(),
+        transform,
+        pan_orbit,
     ));
 }
 
