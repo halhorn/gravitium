@@ -1,76 +1,72 @@
 //! Web 向け Bevy アプリの組み立て。
 
-use bevy::camera::ClearColorConfig;
 use bevy::camera::visibility::RenderLayers;
 use bevy::prelude::*;
-use bevy::render::RenderPlugin;
+use bevy::camera::ClearColorConfig;
 use bevy::render::settings::{RenderCreation, WgpuSettings, WgpuSettingsPriority};
+use bevy::render::RenderPlugin;
 use bevy_egui::{EguiContext, PrimaryEguiContext};
 use bevy_panorbit_camera::PanOrbitCameraPlugin;
 
 use crate::platform;
 use crate::simulation::{
-    SimulationPlugin, SimulationSettings, add_diagnostics_plugins, automated_profiling_active,
-    profiling_enabled,
+    add_diagnostics_plugins, automated_profiling_active, profiling_enabled, SimulationPlugin,
+    SimulationSettings,
 };
-use crate::ui::ControlUiPlugin;
 use crate::url::{UrlNavigation, UrlSyncPlugin};
 use crate::view::{
-    BodiesMesh, SIMULATION_RENDER_LAYER, SimulationCamera, UI_RENDER_LAYER, ViewPlugin,
-    setup_bodies_render, simulation_camera_transform, simulation_pan_orbit,
+    setup_bodies_render, simulation_camera_transform, simulation_pan_orbit, BodiesMesh,
+    SimulationCamera, ViewPlugin, SIMULATION_RENDER_LAYER, UI_RENDER_LAYER,
 };
+use crate::ui::ControlUiPlugin;
 
 /// ネイティブ・WASM 共通の `App` を組み立てて実行する。
 pub fn run() {
     let mut app = App::new();
     let bench_window = automated_profiling_active();
-    app.add_plugins(
-        DefaultPlugins
-            .set(RenderPlugin {
-                render_creation: RenderCreation::Automatic(WgpuSettings {
-                    // Safari / iOS WebGPU は Functionality 優先だとパイプラインが落ちることがある。
-                    priority: WgpuSettingsPriority::Compatibility,
-                    ..default()
-                }),
-                ..default()
-            })
-            .set(WindowPlugin {
-                primary_window: Some(Window {
-                    title: "Gravitium — Gravity Simulator".to_string(),
-                    canvas: Some("#gravitium-canvas".into()),
-                    fit_canvas_to_parent: !bench_window,
-                    prevent_default_event_handling: true,
-                    #[cfg(not(target_arch = "wasm32"))]
-                    resolution: if bench_window {
-                        bevy::window::WindowResolution::new(1280, 720)
-                            .with_scale_factor_override(1.0)
-                    } else {
-                        bevy::window::WindowResolution::default()
-                    },
-                    resizable: !bench_window,
-                    ..default()
-                }),
+    app.add_plugins(DefaultPlugins.set(RenderPlugin {
+            render_creation: RenderCreation::Automatic(WgpuSettings {
+                // Safari / iOS WebGPU は Functionality 優先だとパイプラインが落ちることがある。
+                priority: WgpuSettingsPriority::Compatibility,
                 ..default()
             }),
-    )
-    .insert_resource(UrlNavigation(platform::url_navigation_arc()));
+            ..default()
+        }).set(WindowPlugin {
+            primary_window: Some(Window {
+                title: "Gravitium — Gravity Simulator".to_string(),
+                canvas: Some("#gravitium-canvas".into()),
+                fit_canvas_to_parent: !bench_window,
+                prevent_default_event_handling: true,
+                #[cfg(not(target_arch = "wasm32"))]
+                resolution: if bench_window {
+                    bevy::window::WindowResolution::new(1280, 720)
+                        .with_scale_factor_override(1.0)
+                } else {
+                    bevy::window::WindowResolution::default()
+                },
+                resizable: !bench_window,
+                ..default()
+            }),
+            ..default()
+        }))
+        .insert_resource(UrlNavigation(platform::url_navigation_arc()));
 
     if profiling_enabled() {
         add_diagnostics_plugins(&mut app);
     }
 
     app.add_plugins((
-        UrlSyncPlugin,
-        PanOrbitCameraPlugin,
-        SimulationPlugin,
-        ViewPlugin,
-        ControlUiPlugin,
-    ))
-    .insert_resource(ClearColor(Color::BLACK))
-    .add_systems(PostStartup, setup_bodies_render)
-    .add_systems(Startup, setup_camera)
-    .add_systems(Update, hide_loading_when_ready)
-    .run();
+            UrlSyncPlugin,
+            PanOrbitCameraPlugin,
+            SimulationPlugin,
+            ViewPlugin,
+            ControlUiPlugin,
+        ))
+        .insert_resource(ClearColor(Color::BLACK))
+        .add_systems(PostStartup, setup_bodies_render)
+        .add_systems(Startup, setup_camera)
+        .add_systems(Update, hide_loading_when_ready)
+        .run();
 }
 
 fn setup_camera(mut commands: Commands, settings: Res<SimulationSettings>) {
