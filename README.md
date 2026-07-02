@@ -38,6 +38,13 @@ GitHub Pages では `/gravitium/` サブパス配下に公開するため、`--p
 
 UI や 3D 表示に変更がある場合は、マージ前に `./scripts/run-visual-verification.sh` を実行し、**動作確認結果（スクショ）を PR に添付**してください。
 
+```bash
+# trunk serve 起動後
+./scripts/run-visual-verification.sh
+```
+
+詳細は [docs/verification.md](docs/verification.md) を参照してください。
+
 ## 対応ブラウザ
 
 | ブラウザ | 備考 |
