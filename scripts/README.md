@@ -17,7 +17,6 @@ sudo apt-get install -y mesa-vulkan-drivers xvfb
 ```bash
 cd scripts
 npm install
-npx playwright install chromium
 ```
 
 ## 使い方

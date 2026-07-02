@@ -14,14 +14,13 @@ fi
 cd "${ROOT}/scripts"
 if [[ ! -d node_modules ]]; then
   npm install
-  npx playwright install chromium
 fi
 
 unset NO_COLOR FORCE_COLOR
 
 if [[ "$(uname -s)" == "Linux" ]]; then
   export VK_ICD_FILENAMES="${VK_ICD_FILENAMES:-/usr/share/vulkan/icd.d/lvp_icd.x86_64.json}"
-  xvfb-run -a bash -lc "cd '${ROOT}/scripts' && npm run verify:view"
+  xvfb-run -a npm run verify:view
 else
   npm run verify:view
 fi

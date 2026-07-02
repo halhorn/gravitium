@@ -1,6 +1,6 @@
 /**
  * macOS Chrome smoke test (Metal ANGLE).
- * Prefer `npm run verify:app` — see scripts/README.md.
+ * Prefer `npm run verify:view` — see scripts/README.md.
  */
 import { chromium } from "playwright";
 
