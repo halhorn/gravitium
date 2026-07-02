@@ -14,6 +14,11 @@
 .DS_Store
 Thumbs.db
 
-# Node (local Safari/WebKit debug only)
+# Node (scripts/ verification)
 node_modules/
+scripts/node_modules/
 package-lock.json
+
+# Generated verification screenshots (commit only when documenting a feature)
+artifacts/
+!artifacts/.gitkeep

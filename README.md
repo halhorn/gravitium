@@ -12,7 +12,8 @@ WebGPU 非対応のブラウザでは CPU フォールバックはなく、起�
 
 ## ローカル開発
 
-[`rustup`](https://rustup.rs/) で Rust **1.89 以上**を入れ、wasm ターゲットと Trunk を用意します。
+[`rustup`](https://rustup.rs/) で Rust **1.89 以上**（edition 2024）を入れ、wasm ターゲットと Trunk を用意します。  
+[`rust-toolchain.toml`](rust-toolchain.toml) で toolchain がピン留めされます。
 
 ```bash
 rustup target add wasm32-unknown-unknown
@@ -32,6 +33,17 @@ RUSTFLAGS='--cfg=web_sys_unstable_apis' trunk build --release --public-url /grav
 ```
 
 GitHub Pages では `/gravitium/` サブパス配下に公開するため、`--public-url /gravitium/` は必須です。
+
+## 動作確認（ビジュアル検証）
+
+UI や 3D 表示に変更がある場合は、マージ前に `./scripts/run-visual-verification.sh` を実行し、**動作確認結果（スクショ）を PR に添付**してください。
+
+```bash
+# trunk serve 起動後
+./scripts/run-visual-verification.sh
+```
+
+詳細は [docs/verification.md](docs/verification.md) を参照してください。
 
 ## 対応ブラウザ
 

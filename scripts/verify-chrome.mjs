@@ -1,3 +1,7 @@
+/**
+ * macOS Chrome smoke test (Metal ANGLE).
+ * Prefer `npm run verify:view` — see scripts/README.md.
+ */
 import { chromium } from "playwright";
 
 const URL = "http://127.0.0.1:8080";

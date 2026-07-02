@@ -1,0 +1,11 @@
+{
+  "name": "gravitium-scripts",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "verify:view": "node verify-view.mjs"
+  },
+  "devDependencies": {
+    "playwright": "^1.52.0"
+  }
+}
