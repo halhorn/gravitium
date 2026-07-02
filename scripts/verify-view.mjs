@@ -1,16 +1,16 @@
 #!/usr/bin/env node
 /**
- * Smoke test: app loads over WebGPU and produces a screenshot.
+ * Generic view smoke test: WebGPU boot, simulation render, screenshot.
  *
  * Prerequisite: `trunk serve` on GRAVITIUM_BASE_URL (default http://127.0.0.1:8080)
- * Linux: run via `scripts/run-visual-verification.sh` (xvfb + lavapipe).
+ * Linux: run via `./scripts/run-visual-verification.sh` (xvfb + lavapipe).
  */
 import { BASE_URL, TIMEOUT_MS, VIEWPORT } from "./lib/config.mjs";
 import { attachErrorCollectors, fatalErrors, launchWebGpuBrowser } from "./lib/browser.mjs";
 import { readSimulationState, waitForSimulation } from "./lib/simulation.mjs";
 import { screenshotPath } from "./lib/screenshot.mjs";
 
-const outPath = screenshotPath("verify-app.png");
+const outPath = screenshotPath("verify-view.png");
 
 const browser = await launchWebGpuBrowser();
 const page = await browser.newPage({ viewport: VIEWPORT });

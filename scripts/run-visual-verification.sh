@@ -1,9 +1,8 @@
 #!/usr/bin/env bash
-# Run visual verification with WebGPU-friendly settings on Linux/macOS.
+# Run the generic view verification script (WebGPU + screenshot).
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
-SCRIPT="${1:-verify:app}"
 BASE_URL="${GRAVITIUM_BASE_URL:-http://127.0.0.1:8080}"
 
 if ! curl -sf "${BASE_URL}/" >/dev/null; then
@@ -20,13 +19,9 @@ fi
 
 unset NO_COLOR FORCE_COLOR
 
-run_verify() {
-  npm run "$SCRIPT"
-}
-
 if [[ "$(uname -s)" == "Linux" ]]; then
   export VK_ICD_FILENAMES="${VK_ICD_FILENAMES:-/usr/share/vulkan/icd.d/lvp_icd.x86_64.json}"
-  xvfb-run -a bash -lc "cd '${ROOT}/scripts' && npm run '${SCRIPT}'"
+  xvfb-run -a bash -lc "cd '${ROOT}/scripts' && npm run verify:view"
 else
-  run_verify
+  npm run verify:view
 fi

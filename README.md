@@ -40,10 +40,10 @@ UI や 3D 表示に変更がある場合は、マージ前にスクリーンシ�
 
 ```bash
 # trunk serve 起動後
-./scripts/run-visual-verification.sh verify:app
+./scripts/run-visual-verification.sh
 ```
 
-詳細は [docs/verification.md](docs/verification.md) と [CONTRIBUTING.md](CONTRIBUTING.md) を参照してください。
+詳細は [docs/verification.md](docs/verification.md) を参照してください。
 
 ## 対応ブラウザ
 
