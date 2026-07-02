@@ -22,10 +22,10 @@ pub use merge_cell::MergeCellCpuState;
 pub use restart::restart_simulation;
 pub use settings::SimulationSettings;
 pub use viewport::{
-    fallback_logical_rect, logical_rect_to_camera_viewport, point_in_simulation_viewport,
-    pick_ray_in_rect, world_to_viewport_in_rect, SimulationViewportRect, SimViewportSystems,
-    DESKTOP_PANEL_WIDTH,
-    MOBILE_BREAKPOINT_PX, MOBILE_PANEL_HEIGHT,
+    fallback_logical_rect, fallback_logical_rect_from_size, logical_rect_to_camera_viewport,
+    point_in_simulation_viewport, pick_ray_in_rect, viewport_aspect_from_rect,
+    viewport_aspect_from_window, world_to_viewport_in_rect, SimulationViewportRect,
+    SimViewportSystems, DESKTOP_PANEL_WIDTH, MOBILE_BREAKPOINT_PX, MOBILE_PANEL_HEIGHT,
 };
 
 use bevy::prelude::*;

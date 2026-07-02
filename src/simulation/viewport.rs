@@ -29,17 +29,30 @@ impl Default for SimulationViewportRect {
 }
 
 pub fn fallback_logical_rect(window: &Window) -> Rect {
-    if window.width() < MOBILE_BREAKPOINT_PX {
+    fallback_logical_rect_from_size(window.width(), window.height())
+}
+
+pub fn fallback_logical_rect_from_size(window_width: f32, window_height: f32) -> Rect {
+    if window_width < MOBILE_BREAKPOINT_PX {
         Rect {
             min: Vec2::ZERO,
-            max: Vec2::new(window.width(), (window.height() - MOBILE_PANEL_HEIGHT).max(1.0)),
+            max: Vec2::new(window_width, (window_height - MOBILE_PANEL_HEIGHT).max(1.0)),
         }
     } else {
         Rect {
             min: Vec2::new(DESKTOP_PANEL_WIDTH, 0.0),
-            max: Vec2::new(window.width(), window.height()),
+            max: Vec2::new(window_width, window_height),
         }
     }
+}
+
+pub fn viewport_aspect_from_window(window: &Window) -> f32 {
+    let rect = fallback_logical_rect(window);
+    (rect.width() / rect.height().max(1e-6)).max(1e-6)
+}
+
+pub fn viewport_aspect_from_rect(rect: Rect) -> f32 {
+    (rect.width() / rect.height().max(1e-6)).max(1e-6)
 }
 
 /// WebGPU / Metal `max_texture_dimension_2d` on many Apple GPUs.

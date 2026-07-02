@@ -32,6 +32,30 @@ pub fn recenter_orbit_focus(
     pan_orbit.target_radius = radius;
 }
 
+/// Default orbit yaw / pitch from the legacy `(0, 80, 120)` camera pose.
+pub fn default_orbit_angles(axis: [Vec3; 3]) -> (f32, f32) {
+    let (yaw, pitch, _) = orbit_params_from_translation(
+        Vec3::new(0.0, 80.0, 120.0),
+        Vec3::ZERO,
+        axis,
+    );
+    (yaw, pitch)
+}
+
+pub fn camera_transform_from_orbit(
+    yaw: f32,
+    pitch: f32,
+    radius: f32,
+    focus: Vec3,
+    axis: [Vec3; 3],
+) -> Transform {
+    let yaw_rot = Quat::from_axis_angle(axis[1], yaw);
+    let pitch_rot = Quat::from_axis_angle(axis[0], -pitch);
+    let rotation = yaw_rot * pitch_rot;
+    let translation = focus + rotation * Vec3::new(0.0, 0.0, radius);
+    Transform::from_translation(translation).looking_at(focus, axis[1])
+}
+
 pub fn orbit_params_from_translation(
     translation: Vec3,
     focus: Vec3,
@@ -234,10 +258,7 @@ mod tests {
         focus: Vec3,
         axis: [Vec3; 3],
     ) -> Vec3 {
-        let yaw_rot = Quat::from_axis_angle(axis[1], yaw);
-        let pitch_rot = Quat::from_axis_angle(axis[0], -pitch);
-        let rotation = yaw_rot * pitch_rot;
-        focus + rotation * Vec3::new(0.0, 0.0, radius)
+        camera_transform_from_orbit(yaw, pitch, radius, focus, axis).translation
     }
 
     #[test]
