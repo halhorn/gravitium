@@ -38,6 +38,9 @@ use shaders::register_simulation_shaders;
 #[derive(SystemSet, Debug, Clone, PartialEq, Eq, Hash)]
 pub struct SimulationRestartSet;
 
+#[derive(SystemSet, Debug, Clone, PartialEq, Eq, Hash)]
+pub struct SimulationStartupSet;
+
 pub struct SimulationPlugin;
 
 impl Plugin for SimulationPlugin {
@@ -51,7 +54,11 @@ impl Plugin for SimulationPlugin {
             .add_message::<SimulationSpawned>()
             .add_message::<SimulationCommand>()
             .add_plugins(SimulationGpuPlugin)
-            .add_systems(Startup, (register_simulation_shaders, spawn_initial_simulation))
+            .add_systems(
+                Startup,
+                (register_simulation_shaders, spawn_initial_simulation)
+                    .in_set(SimulationStartupSet),
+            )
             .add_systems(Update, tick_sim_time);
 
         if profiling_enabled() {

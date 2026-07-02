@@ -5,4 +5,4 @@ mod sync;
 
 pub use applied::AppliedUrlState;
 pub use navigation::UrlNavigation;
-pub use sync::UrlSyncPlugin;
+pub use sync::{UrlHydrateSet, UrlSyncPlugin};
